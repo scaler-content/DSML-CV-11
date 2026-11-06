@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Computer Vision 11 post read</title>
+<meta name="description" content="Computer Vision 11 post read: generative adversarial networks: generator, discriminator, training, failure modes and uses">
+<style>
+:root{
+  --v950:#1e0b4b;--v900:#2e1065;--v800:#4c1d95;--v700:#6d28d9;--v600:#7c3aed;--v500:#8b5cf6;
+  --v400:#a78bfa;--v300:#c4b5fd;--v200:#ddd6fe;--v100:#ede9fe;--v50:#f5f3ff;
+  --ink:#1f1637;--muted:#5a4f78;--line:#e4dcfa;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:#fff;color:var(--ink);font:17px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;line-height:1.2;color:var(--v900);margin:0}
+h2{font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0 0 .7rem}
+h3{font-size:1.35rem;margin:2.2rem 0 .5rem}
+h4{font-size:1.02rem;margin:1.2rem 0 .3rem;color:var(--v800)}
+p{margin:.75rem 0}
+p,ul,ol{max-width:70ch}
+li{margin:.3rem 0}
+a{color:var(--v700)}
+code{font:.88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--v100);color:var(--v800);padding:.1em .35em;border-radius:5px}
+:focus-visible{outline:3px solid var(--v500);outline-offset:2px;border-radius:4px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-999px;top:8px;background:var(--v900);color:#fff;padding:.5rem 1rem;z-index:100;border-radius:8px}
+.skip:focus{left:8px}
+
+/* header */
+.top{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .in{max-width:1040px;margin:0 auto;padding:.6rem 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font:700 1.05rem Georgia,serif;color:var(--v900);text-decoration:none;display:flex;align-items:center;gap:10px}
+.brand i{width:18px;height:18px;border-radius:4px;background:conic-gradient(var(--v700) 25%,var(--v300) 0 50%,var(--v500) 0 75%,var(--v900) 0);display:inline-block}
+#bar{height:3px;background:var(--v600);width:0;transition:width .1s}
+.btn{font:600 .9rem system-ui,sans-serif;background:var(--v700);color:#fff;border:2px solid var(--v700);border-radius:10px;padding:7px 14px;cursor:pointer}
+.btn:hover{background:var(--v800);border-color:var(--v800)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--v700)}
+.btn.ghost:hover{background:var(--v50)}
+.btn.sm{padding:4px 10px;font-size:.82rem}
+#toc{position:absolute;right:max(20px,calc(50% - 520px));top:100%;width:min(360px,calc(100vw - 40px));max-height:70vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 40px -12px rgba(46,16,101,.35);padding:10px}
+#toc ol{list-style:none;margin:0;padding:0;max-width:none}
+#toc a{display:flex;gap:10px;padding:7px 10px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:.95rem;line-height:1.35}
+#toc a b{color:var(--v600);font-variant-numeric:tabular-nums;min-width:1.6em}
+#toc a:hover,#toc a[aria-current=true]{background:var(--v100);color:var(--v900)}
+#toc a[aria-current=true]{font-weight:700}
+
+/* hero */
+.hero{color:#fff;padding:84px 20px 92px;background-color:var(--v900);
+  background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(135deg,var(--v950),var(--v700));
+  background-size:30px 30px,30px 30px,100% 100%}
+.hero .in{max-width:900px;margin:0 auto}
+.eyebrow{font:700 .78rem system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--v200)}
+.hero h1{color:#fff;font-size:clamp(2.3rem,6.5vw,4rem);margin:.4rem 0 1rem}
+.hero p{font-size:1.2rem;color:var(--v100);max-width:56ch}
+.hero .cta{margin-top:1.6rem;display:flex;gap:12px;flex-wrap:wrap}
+.hero .btn{background:#fff;color:var(--v800);border-color:#fff}
+.hero .btn.ghost{background:transparent;color:#fff;border-color:var(--v300)}
+
+/* sections */
+main section{padding:60px 20px;border-bottom:1px solid var(--line)}
+main section:nth-of-type(even){background:var(--v50)}
+main section>.in{max-width:940px;margin:0 auto}
+.kicker{display:inline-block;font:700 .78rem system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--v600);margin-bottom:.35rem}
+.callout{border-left:5px solid var(--v600);background:var(--v100);padding:12px 18px;border-radius:0 14px 14px 0;margin:1.2rem 0;max-width:70ch}
+.callout p{margin:.3rem 0}
+.note{font-size:.88rem;color:var(--muted)}
+.formula{font:italic 1.2rem Georgia,serif;text-align:center;background:var(--v900);color:#fff;border-radius:14px;padding:14px 18px;margin:16px 0;overflow-x:auto;max-width:none}
+.formula small{display:block;font:.8rem system-ui;color:var(--v200);font-style:normal;margin-top:4px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0}
+.card{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:#fff}
+.card h4{margin:0 0 .3rem;font-size:1.05rem;color:var(--v900)}
+.card p{margin:.3rem 0;font-size:.97rem}
+.card.dark{background:var(--v900);color:#fff;border-color:var(--v900)}
+.card.dark h4{color:#fff}
+.tag{display:inline-block;font:700 .72rem system-ui;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--v100);color:var(--v800)}
+
+/* widgets */
+.widget{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin:24px 0;box-shadow:0 8px 26px -14px rgba(76,29,149,.35)}
+.wtag{display:inline-block;font:700 .7rem system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--v700);background:var(--v100);padding:5px 10px;border-radius:999px;margin-bottom:8px}
+.wtitle{font:700 1.12rem/1.3 Georgia,serif;color:var(--v900);margin:0 0 4px}
+.wdesc{color:var(--muted);font-size:.93rem;margin:0 0 12px;max-width:none}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:8px 0 14px}
+.seg{display:inline-flex;flex-wrap:wrap}
+.seg button{font:600 .85rem system-ui,sans-serif;border:1.5px solid var(--v300);background:#fff;color:var(--v800);padding:6px 12px;cursor:pointer;margin-left:-1.5px}
+.seg button:first-child{border-radius:10px 0 0 10px;margin-left:0}
+.seg button:last-child{border-radius:0 10px 10px 0}
+.seg button:only-child{border-radius:10px}
+.seg button:hover{background:var(--v50)}
+.seg button[aria-pressed=true]{background:var(--v700);border-color:var(--v700);color:#fff;position:relative;z-index:1}
+select,input[type=number]{font:inherit;font-size:.9rem;padding:6px 8px;border:1.5px solid var(--v300);border-radius:8px;background:#fff;color:var(--v900)}
+input[type=number]{width:92px}
+input[type=range]{accent-color:var(--v600)}
+label.sel,label.chk,label.fld{font-size:.88rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+label.fld{flex-direction:column;align-items:flex-start;gap:3px;font-weight:600}
+.mat{display:grid;gap:3px;grid-template-columns:repeat(var(--c),minmax(0,1fr))}
+.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;text-align:center;font:600 clamp(.6rem,1.7vw,.88rem)/1.1 ui-monospace,Menlo,monospace;border-radius:6px;background:var(--v50);color:var(--v900);border:1.5px solid var(--v200);padding:0;margin:0}
+button.cell{cursor:pointer}
+button.cell:hover{border-color:var(--v700)}
+.cell.win{outline:3px solid var(--v900);outline-offset:-2px;z-index:1}
+.cell.pad{background:repeating-linear-gradient(45deg,#fff,#fff 4px,var(--v100) 4px,var(--v100) 8px);color:var(--muted);border-style:dashed}
+.cell.neg{border:2px dashed var(--v900)}
+.cell.cur{outline:3px solid var(--v900);outline-offset:-2px}
+.cell.on{background:var(--v700);color:#fff;border-color:var(--v700)}
+.cell.ghost{border:2px dashed var(--v700)}
+.cell.sel{outline:3px solid var(--v900);outline-offset:-2px}
+.bars{display:grid;gap:6px}
+.brow{display:grid;grid-template-columns:minmax(78px,150px) 1fr 62px;gap:10px;align-items:center;font-size:.9rem}
+.bl{font-weight:600;color:var(--v900)}
+.bt{background:var(--v100);border-radius:6px;height:16px;overflow:hidden;display:block}
+.bf{display:block;height:100%;background:var(--v700);border-radius:6px;transition:width .25s}
+.bv{font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
+.readout{margin-top:12px;padding:10px 14px;background:var(--v50);border:1px solid var(--line);border-radius:12px;font-size:.93rem;max-width:none}
+.readout b{color:var(--v900)}
+.fig{margin:14px 0}
+.fig img{max-width:100%;height:auto;border-radius:12px;border:1px solid var(--line);display:block;margin:0 auto}
+.fig figcaption{font-size:.85rem;color:var(--muted);text-align:center;margin-top:6px}
+.fb{display:none;padding:18px;border:2px dashed var(--v300);border-radius:12px;color:var(--muted);font-size:.9rem;text-align:center}
+.fig.broken .fb{display:block}
+.fig.broken img{display:none}
+.duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+
+/* tabs */
+.tabs{margin:18px 0}
+.tablist{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid var(--line);margin-bottom:14px}
+.tablist button{font:600 .92rem system-ui,sans-serif;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:9px 14px;cursor:pointer;margin-bottom:-2px;border-radius:8px 8px 0 0}
+.tablist button:hover{color:var(--v800);background:var(--v50)}
+.tablist button[aria-selected=true]{color:var(--v800);border-bottom-color:var(--v700);background:var(--v100)}
+[role=tabpanel]:focus-visible{outline-offset:6px}
+
+/* code + tables */
+details.code{border:1px solid var(--line);border-radius:12px;margin:14px 0;background:#fff;overflow:hidden}
+details.code summary{cursor:pointer;padding:10px 14px;font:600 .9rem system-ui;color:var(--v800);background:var(--v50)}
+details.code[open] summary{border-bottom:1px solid var(--line)}
+pre{margin:0;padding:14px 16px;overflow:auto;background:var(--v950);color:var(--v100);font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.tw{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--v100);color:var(--v900);font-weight:700}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+
+/* specific widgets */
+.pxwrap{display:grid;grid-template-columns:minmax(0,420px) 1fr;gap:20px;align-items:start}
+.pxgrid{gap:2px}
+.pxgrid .cell{border-radius:3px;border:0;font-size:clamp(.5rem,1.4vw,.68rem)}
+.vrow{display:flex;align-items:center;gap:8px;margin:5px 0}
+.vl{font-weight:800;color:var(--v800);width:44px;font-size:.82rem}
+.vcells{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px;flex:1}
+.vcells .cell{aspect-ratio:auto;height:34px;font-size:clamp(.55rem,1.5vw,.78rem)}
+.flat{display:grid;grid-template-columns:130px 1fr;gap:22px;align-items:start}
+.flat .mat{max-width:130px}
+.srow{display:grid;grid-template-columns:72px minmax(90px,1fr) 42px minmax(90px,1fr) 58px;gap:10px;align-items:center;margin:8px 0;font-size:.9rem}
+.srow input{width:100%}
+.zv{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right}
+.mx{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start}
+.layers{list-style:none;margin:0;padding:0;max-width:none;display:grid;gap:6px}
+.lay{width:100%;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.9fr) minmax(0,1fr);gap:8px;align-items:center;text-align:left;font:inherit;font-size:.86rem;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink)}
+.lay:hover{border-color:var(--v400)}
+.lay[aria-pressed=true]{border-color:var(--v700);background:var(--v50);box-shadow:inset 4px 0 0 var(--v700)}
+.lay .ln{font-weight:700;color:var(--v900)}
+.lay .ls{color:var(--muted);font-variant-numeric:tabular-nums}
+.lay .lp{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.lay .lb{grid-column:1/-1;height:6px;background:var(--v100);border-radius:4px;overflow:hidden}
+.lay .lb i{display:block;height:100%;background:var(--v600)}
+.ldetail{background:var(--v900);color:#fff;border-radius:14px;padding:16px 18px;position:sticky;top:90px}
+.ldetail h4{color:#fff;margin:0 0 6px}
+.ldetail p{margin:.4rem 0;font-size:.92rem;color:var(--v100)}
+.ldetail code{background:rgba(255,255,255,.14);color:#fff}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin:6px 0}
+.legend i{display:inline-block;width:26px;height:0;border-top:3px solid var(--v900);vertical-align:middle;margin-right:6px}
+.plot{touch-action:pan-y;outline-offset:2px}
+.plot svg{width:100%;height:auto;display:block}
+.cx{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,.7fr) minmax(0,.7fr) minmax(0,1fr);gap:16px;align-items:start}
+.pl{font:700 .78rem system-ui;color:var(--v800);margin-bottom:6px;letter-spacing:.02em}
+.sum{margin-top:8px;font-size:.95rem}
+.stepbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:14px}
+.stepbar input[type=range]{flex:1;min-width:140px}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:#fff}
+.stat .k{font:700 .74rem system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font:700 1.7rem Georgia,serif;color:var(--v900)}
+.stat .s{font-size:.85rem;color:var(--muted)}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vs div{padding:8px 10px;border-radius:10px;background:var(--v50)}
+.vs div.win{background:var(--v900);color:#fff}
+.vs small{display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+.vs b{font:700 1.3rem Georgia,serif}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0;max-width:none}
+.flow span{background:#fff;border:1.5px solid var(--v300);color:var(--v900);padding:8px 12px;border-radius:10px;font:600 .9rem system-ui}
+.flow i{color:var(--v600);font-style:normal;font-weight:800}
+.cortex{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:stretch}
+.cortex .rl{font:700 .75rem system-ui;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center}
+.cortex button{font:inherit;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 8px;cursor:pointer;text-align:center;color:var(--ink);font-size:.84rem}
+.cortex button:hover{border-color:var(--v400)}
+.cortex button[aria-pressed=true]{background:var(--v900);color:#fff;border-color:var(--v900)}
+.cortex svg{width:40px;height:40px;display:block;margin:0 auto 4px}
+.cortex button b{display:block;font-size:.86rem}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;margin:8px 0;cursor:pointer;background:#fff}
+.opt:hover{border-color:var(--v400)}
+.opt input{margin-top:5px;accent-color:var(--v700)}
+.opt.ok{background:var(--v900);color:#fff;border-color:var(--v900)}
+.opt.bad{border:2px dashed var(--v900);background:var(--v50)}
+.opt .mk{margin-left:auto;font-weight:700;font-size:.82rem;white-space:nowrap}
+fieldset{border:0;padding:0;margin:0}
+legend{font-weight:700;color:var(--v900);padding:0;margin-bottom:6px}
+.qa{display:flex;gap:10px;margin-top:10px}
+footer{background:var(--v950);color:var(--v200);text-align:center;padding:36px 20px;font:700 1rem Georgia,serif}
+footer small{display:block;font:.8rem system-ui;opacity:.7;margin-top:4px}
+
+@media (max-width:820px){
+  .pxwrap,.flat,.mx{grid-template-columns:1fr}
+  .cx{grid-template-columns:1fr 1fr}
+  .cx .pn-in{grid-column:1/-1}
+  .ldetail{position:static}
+  .cortex{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .cortex .rl{grid-column:1/-1}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  main section{padding:44px 16px}
+  .srow{grid-template-columns:72px 1fr 42px}
+  .srow .bt{grid-column:2}
+  .srow .bv{grid-column:3}
+  .brow{grid-template-columns:84px 1fr 54px}
+}
+/* L2 additions */
+.maps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.maps .mat{gap:2px}
+.maps .cell{border-radius:3px;border:0;font-size:clamp(.5rem,1.4vw,.72rem)}
+.mapbtn{border:2px solid transparent;background:none;border-radius:10px;padding:4px;cursor:pointer;text-align:left;font:inherit}
+.mapbtn:hover{border-color:var(--v300)}
+.mapbtn[aria-pressed=true]{border-color:var(--v700);background:var(--v50)}
+.outrow{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.outrow .cell{width:34px;height:34px;aspect-ratio:auto;border-radius:5px;font-size:.7rem}
+.neurons{gap:3px;max-width:420px}
+.neurons .cell{border-radius:4px;border:0;font-size:0}
+.neurons .cell.on{background:var(--v700)}
+.neurons .cell.off{background:repeating-linear-gradient(45deg,#fff,#fff 3px,var(--v200) 3px,var(--v200) 6px);border:1.5px dashed var(--v300)}
+.meter{height:12px;background:var(--v100);border-radius:6px;overflow:hidden;margin:4px 0 10px}
+.meter i{display:block;height:100%;background:var(--v700);transition:width .2s}
+.meter.warn i{background:var(--v900)}
+.mrow{font-size:.9rem;color:var(--ink)}
+.mrow b{color:var(--v900)}
+.lsteps{list-style:none;counter-reset:s;padding:0;margin:12px 0;max-width:none;display:grid;gap:8px}
+.lsteps li{counter-increment:s;display:flex;gap:12px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;background:#fff;margin:0}
+.lsteps li::before{content:counter(s);flex:none;width:28px;height:28px;border-radius:50%;background:var(--v700);color:#fff;display:flex;align-items:center;justify-content:center;font:700 .85rem system-ui}
+.lsteps li.skip{border-style:dashed;background:var(--v50);color:var(--muted)}
+.lsteps li.skip::before{background:var(--v300)}
+.lsteps li .tg{margin-left:auto;font:700 .72rem system-ui;letter-spacing:.06em;text-transform:uppercase;color:var(--v800);background:var(--v100);padding:3px 8px;border-radius:999px;white-space:nowrap}
+.augg{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0}
+.augg figure{margin:0;text-align:center}
+.augg svg{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px;background:#fff}
+.augg figcaption{font:600 .78rem system-ui;color:var(--muted);margin-top:4px}
+.vols{width:100%;height:auto;display:block;margin:6px 0 10px}
+.vols g[role=button]{cursor:pointer}
+.vols g:focus-visible{outline:none}
+.vols g:focus-visible rect:first-of-type{stroke-width:4}
+.rbars{display:grid;gap:8px}
+.rb{display:grid;grid-template-columns:minmax(120px,210px) 1fr 64px;gap:10px;align-items:center;text-align:left;font:inherit;font-size:.9rem;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink);width:100%}
+.rb:hover{border-color:var(--v400)}
+.rb[aria-pressed=true]{border-color:var(--v700);background:var(--v50);box-shadow:inset 4px 0 0 var(--v700)}
+.rb .bl{font-weight:700}
+.rb .bt{height:18px;position:relative}
+.rb .zone{position:absolute;top:0;bottom:0;left:0;background:repeating-linear-gradient(45deg,var(--v200),var(--v200) 3px,#fff 3px,#fff 6px);opacity:.9}
+.rb .bf{position:relative}
+.mt td,.mt th{text-align:center;padding:6px 8px}
+.mt td:first-child,.mt th:first-child{text-align:left}
+.yes{font-weight:800;color:var(--v700)}
+.no{color:var(--v300)}
+pre.prompt{white-space:pre-wrap;word-break:break-word;border-radius:12px;font-size:13px}
+.hint{font-size:.85rem;color:var(--muted)}
+.cardlink{display:inline-block;margin-top:.4rem;font-weight:700;font-size:.9rem}
+@media (max-width:640px){
+  .maps{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rb{grid-template-columns:90px 1fr 54px}
+}
+td.hl{background:var(--v100);font-weight:700}
+label.sel{flex-wrap:wrap;max-width:100%}
+label.sel select{max-width:100%;min-width:0}
+@media (max-width:640px){label.sel{width:100%}label.sel select{width:100%}}
+.yes{white-space:nowrap}
+@media (max-width:640px){.plot svg text{font-size:19px}.vols text{font-size:18px}}
+p code,li code,td code{overflow-wrap:anywhere}
+@media (max-width:640px){.widget .tw th,.widget .tw td{padding:6px 5px;font-size:.74rem}}
+.readout pre{overflow-x:auto;max-width:100%}
+.seg{max-width:100%;flex-wrap:wrap}
+.brow{grid-template-columns:minmax(70px,150px) minmax(0,1fr) auto}.brow .bl{overflow-wrap:anywhere}
+.readout{overflow-wrap:anywhere}
+
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="in">
+    <a class="brand" href="#top"><i aria-hidden="true"></i>Computer Vision 11 post read</a>
+    <button class="btn ghost sm" id="tocBtn" aria-expanded="false" aria-controls="toc">Contents</button>
+  </div>
+  <div id="bar" aria-hidden="true"></div>
+  <nav id="toc" aria-label="Contents" hidden><ol></ol></nav>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <div class="eyebrow">Deep Learning · Computer Vision</div>
+    <h1>Computer Vision 11 post read</h1>
+    <p>An animation studio wants a tool that suggests new character faces. A generative adversarial network (GAN) learns what faces look like by pitting a generator that forges images against a discriminator that inspects them. We build a small GAN in PyTorch, read its training curves, check it is not copying, break it on purpose, and see where GANs are used.</p>
+    <div class="cta"><a class="btn" href="#problem">Start reading</a><a class="btn ghost" href="#training">Jump to training</a></div>
+  </div>
+</div>
+
+<main id="main">
+
+<section id="problem" data-title="The problem and the idea">
+<div class="in">
+  <span class="kicker">01</span>
+  <h2>The problem: inventing new faces</h2>
+  <p>You work at an animation studio. Designing a character takes days: style, sketch, refine, color. The studio wants a tool that suggests new faces as a starting point.</p>
+  <div class="callout"><p><b>Task:</b> from a pile of example faces, produce new ones that look like they belong but are not copies.</p></div>
+  <ul>
+    <li>There are no labels. The model learns from the images alone.</li>
+    <li>An autoencoder is the obvious first try, but it is trained to rebuild the exact image it was given. Nothing in it pushes it to invent.</li>
+    <li>We want a model that learns what faces in general look like, then <b>samples</b> from that.</li>
+  </ul>
+  <h3>Generative vs discriminative</h3>
+  <p>A <b>discriminative</b> model learns a boundary: which class is this point in? A <b>generative</b> model learns how the data is spread out, so it can produce new points that fit.</p>
+  <div class="widget" data-w="gen"></div>
+  <div data-fig="gen"></div>
+  <details class="code"><summary>Code: the two pictures</summary><pre data-code="gen"></pre></details>
+  <h3>An analogy: forger and inspector</h3>
+  <p>A forger prints fake banknotes. The first ones are awful and the inspector catches them all. But each rejection shows the forger what gave the fake away, so the next batch is better. Soon a few fakes slip through, so the inspector has to learn from those misses, and then the forger has to improve again. Round after round, both get better.</p>
+  <p>That is a GAN. The forger is the <b>generator</b>; the inspector is the <b>discriminator</b>. Neither is told what a perfect note looks like: each only reacts to the other.</p>
+  <div class="callout"><p>random noise z → <b>Generator</b> → fake image ─┐<br>real image from the dataset ───────────────┴→ <b>Discriminator</b> → real or fake?</p></div>
+  <ul>
+    <li>The <b>generator</b> (G) turns a random vector into an image. It never sees a real image; it learns only from how D reacts.</li>
+    <li>The <b>discriminator</b> (D) scores an image for “this is real”.</li>
+    <li>They train in turns. A better D forces G to make better fakes; a better G forces D to look harder.</li>
+  </ul>
+  <div class="widget" data-w="quiz" data-q="q1"></div>
+</div>
+</section>
+
+<section id="data" data-title="Setup and data">
+<div class="in">
+  <span class="kicker">02</span>
+  <h2>Setup and the face dataset</h2>
+  <p>All the knobs sit in one cell: seed 42, <b>5,000</b> faces, batch size 64, 30 epochs and a noise vector of length <b>128</b>.</p>
+  <p>The faces are drawn by code: each 64 × 64 anime-style face is built from random hair, eyes, skin tone and extras, and the seed makes it repeatable. The array has shape (5000, 64, 64, 3), dtype uint8, pixel range 16 to 255.</p>
+  <div data-fig="faces"></div>
+  <p>Before training we put the channels first (PyTorch expects batch, channels, height, width) and rescale pixels from 0..255 to <b>−1..1</b>. A batch has shape (64, 3, 64, 64); the lecture’s sample batch ranges from −0.85 to 1.00. The reason for −1..1 comes up with the generator.</p>
+  <details class="code"><summary>Code: setup, face generator and data loader</summary><pre data-code="setup"></pre><pre data-code="facegen"></pre></details>
+</div>
+</section>
+
+<section id="disc" data-title="The discriminator">
+<div class="in">
+  <span class="kicker">03</span>
+  <h2>The discriminator</h2>
+  <p>An ordinary CNN classifier. Four stride-2 convolutions shrink the image (64 → 32 → 16 → 8 → 4) while adding channels, and a linear layer gives <b>one number per image</b>.</p>
+  <h3>LeakyReLU</h3>
+  <p>ReLU sends every negative input to zero, with zero slope there. LeakyReLU lets a fraction through (0.2 here), so the slope is never zero. This matters because G learns only from gradients that pass back through D: if D blocks them, G learns nothing.</p>
+  <div class="widget" data-w="leaky"></div>
+  <div data-fig="leaky"></div>
+  <details class="code"><summary>Code: activation and gradient plots</summary><pre data-code="leaky"></pre></details>
+  <div class="widget" data-w="quiz" data-q="q2"></div>
+  <h3>Logit output and spectral normalization</h3>
+  <p>The output is a raw score (a <b>logit</b>). We leave the sigmoid out of the network and let the loss apply it, which is more numerically stable.</p>
+  <p><b>Spectral normalization</b> is an optional stabilizer: it rescales each layer’s weights so D cannot change its score too sharply between similar images. It is on by default, and we turn it off later to see what changes. Weights start from a normal distribution with standard deviation 0.02.</p>
+  <details class="code"><summary>Code: the discriminator</summary><pre data-code="disc"></pre></details>
+</div>
+</section>
+
+<section id="generator" data-title="The generator">
+<div class="in">
+  <span class="kicker">04</span>
+  <h2>The generator</h2>
+  <p>It does the reverse: 128 random numbers in, a 64 × 64 × 3 image out. The tool is the <b>transposed convolution</b>: a stride-2 convolution halves the size; a stride-2 transposed convolution doubles it.</p>
+  <div class="callout"><p>output size = (input − 1) · stride − 2 · padding + kernel</p></div>
+  <ul>
+    <li>One stride-1 transposed convolution makes a 4 × 4 map from the noise.</li>
+    <li>Four stride-2 transposed convolutions grow it 4 → 8 → 16 → 32 → 64, with a 3 × 3 convolution at 32 × 32 to smooth the picture.</li>
+    <li>BatchNorm and ReLU after each hidden layer.</li>
+    <li><b>tanh</b> at the end keeps every pixel in −1..1. That is why we rescaled the real images: fakes live in −1..1, so real images must too, otherwise D could separate them by range alone.</li>
+  </ul>
+  <div class="widget" data-w="gnet"></div>
+  <details class="code"><summary>Code: formula check</summary><pre data-code="convt"></pre></details>
+  <div class="widget" data-w="params"></div>
+  <details class="code"><summary>Code: generator and shape tracing</summary><pre data-code="genr"></pre></details>
+  <div class="widget" data-w="quiz" data-q="q3"></div>
+</div>
+</section>
+
+<section id="training" data-title="How training works">
+<div class="in">
+  <span class="kicker">05</span>
+  <h2>How GAN training works</h2>
+  <div class="widget" data-w="loop"></div>
+  <p><b>Discriminator step.</b> Real faces get label 1, generated faces label 0, using binary cross entropy with the two terms added: <code>d_loss = BCE(D(real), 1) + BCE(D(G(z)), 0)</code>. The fakes are <code>.detach()</code>ed so the gradient stops at D and does not reach G.</p>
+  <p><b>Generator step.</b> Make fresh fakes, pass them through D, and label them <b>1</b>. D’s weights are frozen for this step, but the gradient still flows through D into G: <code>g_loss = BCE(D(G(z)), 1)</code>. So D wants D(G(z)) near 0, and G wants it near 1.</p>
+  <h3>Why label the fakes as real?</h3>
+  <p>The original paper writes G’s goal as <i>minimize</i> log(1 − D(G(z))). Early on, D rejects the fakes confidently, so D(G(z)) is near 0 and that function is almost flat: G barely learns when it needs to learn most. Flipping to <i>maximize</i> log D(G(z)) wants the same thing but has a strong gradient exactly there. This is the <b>non-saturating</b> loss, and labeling fakes as 1 is how you get it. The sentence “G wants D(G(z)) close to 0” is therefore wrong: D(G(z)) is D’s score for “real”, so G wants it near 1.</p>
+  <div class="widget" data-w="sat"></div>
+  <details class="code"><summary>Code: the gradient comparison</summary><pre data-code="sat"></pre></details>
+  <div class="widget" data-w="quiz" data-q="q4"></div>
+  <div class="callout"><p>The min-max game from the original paper:<br><b>min over G, max over D of E[log D(x)] + E[log(1 − D(G(z)))]</b></p></div>
+  <p>Two details from the DCGAN paper: <b>Adam with lr 0.0002 and β1 = 0.5</b> (the usual β1 is 0.9, but the authors found that made training oscillate; β2 stays at 0.999), and weights starting from a normal distribution with std 0.02.</p>
+  <div class="widget" data-w="bce"></div>
+  <h3>Helpers and the diversity score</h3>
+  <p>The <b>diversity score</b> is the average distance between pairs of images. It lets us measure whether G makes varied faces or keeps repeating itself, with real faces as the reference: <b>50.1</b> for 32 real faces.</p>
+  <p>The training function is the loop above plus bookkeeping: it reuses the same 32 noise vectors after every epoch so we can watch the same faces improve, and keeps snapshots from four moments in training. Defaults: 30 epochs on 5,000 faces.</p>
+  <details class="code"><summary>Code: helpers, train_gan and the run</summary><pre data-code="train"></pre></details>
+</div>
+</section>
+
+<section id="results" data-title="Reading the results">
+<div class="in">
+  <span class="kicker">06</span>
+  <h2>Reading the curves and the faces</h2>
+  <p>Both losses bounce around: that is normal for a GAN. In the main run D’s loss went from 0.818 to 0.777 and G’s from 1.979 to 1.863, while diversity rose from 13.8 to 46.1, close to the real faces’ 50.1.</p>
+  <ul>
+    <li><b>Both losses noisy and in the same range, diversity rising:</b> healthy.</li>
+    <li><b>d_loss near 0 and g_loss climbing:</b> D is winning and G gets no useful signal.</li>
+    <li><b>Diversity stuck well below real:</b> G is repeating a few faces.</li>
+  </ul>
+  <div class="widget" data-w="diag"></div>
+  <div data-fig="curves"></div>
+  <details class="code"><summary>Code: loss and diversity plots</summary><pre data-code="diag"></pre></details>
+  <h3>Same noise, four moments</h3>
+  <p>The same 16 noise vectors at four points in training. Early on: color and rough shapes. Later: faces with eyes and hair, and more variety from one face to the next.</p>
+  <div data-fig="snap"></div>
+  <h3>New faces, and are they copies?</h3>
+  <p>Fresh noise gives new faces (diversity 45.5 against 50.1 for real faces). For each generated face we find the closest training face by pixel distance and show them together: identical pairs would mean memorization; related but different pairs mean it learned the style.</p>
+  <div data-fig="newf,near"></div>
+  <h3>Walking through latent space</h3>
+  <p>Take two noise vectors and blend between them in ten steps. If G learned something real, the faces change smoothly (hair color slides, eyes shift); if it only memorized, you would see sudden jumps.</p>
+  <div data-fig="walk"></div>
+  <details class="code"><summary>Code: new faces, copy check and latent walk</summary><pre data-code="use"></pre></details>
+</div>
+</section>
+
+<section id="hard" data-title="Why GANs are hard to train">
+<div class="in">
+  <span class="kicker">07</span>
+  <h2>Why GANs are hard to train</h2>
+  <p>Two networks pulling against each other can fail in ways a normal classifier never does.</p>
+  <div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+    <div class="card"><span class="tag">1</span><h4>Vanishing gradients</h4><p>If D gets too good too fast, its score for fakes sits at 0 and G gets almost no gradient. The non-saturating loss and spectral normalization both help.</p></div>
+    <div class="card"><span class="tag">2</span><h4>Mode collapse</h4><p>The data has many kinds of faces (modes). G finds a few that fool D and keeps producing only those. Each image looks fine, but they all look alike. The basic loss does not punish this, which is why we track diversity. Watching samples is the first defense.</p></div>
+    <div class="card"><span class="tag">3</span><h4>No single quality number</h4><p>Loss does not measure picture quality. You monitor samples, and for serious work use a metric such as FID.</p></div>
+  </div>
+  <div class="widget" data-w="quiz" data-q="q5"></div>
+  <h3>Break the GAN: no spectral normalization</h3>
+  <p>The same training with spectral normalization <b>off</b>, for the same 30 epochs. Compare the final epoch (the lecture’s own summary):</p>
+  <table class="tw"><thead><tr><th></th><th>D loss</th><th>G loss</th><th>Diversity (of real)</th></tr></thead><tbody><tr><td>With spectral norm</td><td>0.78</td><td>1.86</td><td>0.92</td></tr><tr><td>Without spectral norm</td><td>0.40</td><td>5.58</td><td>0.80</td></tr></tbody></table>
+  <p>Without it, D’s loss stayed low while G’s loss sat well above 1: D was winning most rounds, and the diversity score ended lower. In a scaled-down test the lecture saw D near 0.1 to 0.2, G around 6 and diversity at roughly half; exact numbers differ with seed and hardware.</p>
+  <div class="widget" data-w="curves"></div>
+  <div data-fig="plain"></div>
+  <details class="code"><summary>Code: the ablation</summary><pre data-code="ablate"></pre></details>
+</div>
+</section>
+
+<section id="uses" data-title="Where GANs are used">
+<div class="in">
+  <span class="kicker">08</span>
+  <h2>Where GANs are used</h2>
+  <div class="widget" data-w="apps"></div>
+  <p>For text-to-image work, diffusion models have largely replaced GANs: they are easier to train and cover more variety. GANs still win on speed, since one forward pass makes an image.</p>
+  <h3>Key takeaways</h3>
+  <div class="callout"><ul>
+    <li>A <b>discriminative</b> model learns a boundary; a <b>generative</b> model learns how the data is spread out so it can sample new data.</li>
+    <li>In a GAN the <b>generator</b> turns noise into images and the <b>discriminator</b> scores images as real or generated; they train in turns, and G learns only through D’s gradients.</li>
+    <li>Generators use transposed convolutions and end in tanh, so real images are rescaled to −1..1; discriminators use LeakyReLU to keep gradients flowing.</li>
+    <li>Labeling fakes as real (the non-saturating loss) has the same goal as the original loss but strong gradients when D rejects fakes confidently.</li>
+    <li>Loss does not measure picture quality: track diversity, look at samples, and use nearest-neighbor checks and latent walks.</li>
+    <li>Common failures are vanishing gradients and mode collapse; spectral normalization is one stabilizer.</li>
+  </ul></div>
+</div>
+</section>
+
+</main>
+<footer>Computer Vision 11 post read<small>Interactive learning article</small></footer>
+
+<script>
+(function(){
+'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const fmt=n=>Number(n).toLocaleString('en-US');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+let uid=0;
+function h(html){const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstElementChild;}
+function mix(t){t=Math.max(0,Math.min(1,t));const a=[255,255,255],b=[109,40,217];return 'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')';}
+function ink(t){return t>0.5?'#fff':'#2e1065';}
+function shell(root,title,desc){root.classList.add('widget');root.innerHTML='<span class="wtag">Interactive</span><h4 class="wtitle">'+title+'</h4>'+(desc?'<p class="wdesc">'+desc+'</p>':'')+'<div class="wbody"></div>';return $('.wbody',root);}
+function seg(container,options,value,onChange,label){
+  const wrap=h('<div class="seg" role="group" aria-label="'+label+'"></div>');
+  function set(v){value=v;Array.from(wrap.children).forEach((b,i)=>b.setAttribute('aria-pressed',String(options[i].value===v)));}
+  options.forEach(o=>{const b=h('<button type="button" aria-pressed="false">'+o.label+'</button>');b.addEventListener('click',()=>{set(o.value);onChange(o.value);});wrap.appendChild(b);});
+  set(value);container.appendChild(wrap);return {set};
+}
+
+/* ---------- chart helper (inline SVG) ---------- */
+function niceMax(m){const st=m<=3?0.5:m<=6?1:2;return Math.ceil(m/st)*st;}
+function stepTicks(a,b,st){const t=[];for(let v=a;v<=b+1e-9;v+=st)t.push(+v.toFixed(6));return t;}
+function epochTicks(n){const st=n<=12?1:5,t=[1];for(let v=st;v<=n;v+=st)if(v>1)t.push(v);return t;}
+function chart(o){
+  const W=o.W||640,H=o.H||300,M=Object.assign({l:52,r:16,t:16,b:40},o.M||{});
+  const iw=W-M.l-M.r,ih=H-M.t-M.b,x0=o.x[0],x1=o.x[1],y0=o.y[0],y1=o.y[1];
+  const X=v=>M.l+(v-x0)/(x1-x0)*iw,Y=v=>M.t+ih-(v-y0)/(y1-y0)*ih;
+  let s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label||'Chart')+'">';
+  (o.yt||[]).forEach(t=>{s+='<line x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+Y(t).toFixed(1)+'" y2="'+Y(t).toFixed(1)+'" stroke="#e4dcfa"/><text x="'+(M.l-8)+'" y="'+(Y(t)+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="#5a4f78">'+(o.yf?o.yf(t):t)+'</text>';});
+  (o.xt||[]).forEach(t=>{s+='<text x="'+X(t).toFixed(1)+'" y="'+(H-M.b+17)+'" text-anchor="middle" font-size="11" fill="#5a4f78">'+(o.xf?o.xf(t):t)+'</text>';});
+  s+='<line x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+(M.t+ih)+'" y2="'+(M.t+ih)+'" stroke="#a78bfa"/>';
+  if(o.xlabel)s+='<text x="'+(M.l+iw/2)+'" y="'+(H-5)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#2e1065">'+esc(o.xlabel)+'</text>';
+  if(o.ylabel)s+='<text transform="translate(13 '+(M.t+ih/2)+') rotate(-90)" text-anchor="middle" font-size="12" font-weight="700" fill="#2e1065">'+esc(o.ylabel)+'</text>';
+  (o.hl||[]).forEach(v=>{s+='<line x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+Y(v.y).toFixed(1)+'" y2="'+Y(v.y).toFixed(1)+'" stroke="'+(v.c||'#a78bfa')+'" stroke-width="'+(v.w||1.5)+'"'+(v.d?' stroke-dasharray="'+v.d+'"':'')+'/>';});
+  (o.vl||[]).forEach(v=>{const x=X(v.x),right=x>W*0.7;s+='<line x1="'+x.toFixed(1)+'" x2="'+x.toFixed(1)+'" y1="'+M.t+'" y2="'+(M.t+ih)+'" stroke="'+(v.c||'#8b5cf6')+'" stroke-width="'+(v.w||1.5)+'" stroke-dasharray="'+(v.d||'4 4')+'"/>'+(v.label?'<text x="'+(x+(right?-4:4)).toFixed(1)+'" y="'+(M.t+11)+'" text-anchor="'+(right?'end':'start')+'" font-size="10.5" font-weight="700" fill="#4c1d95">'+esc(v.label)+'</text>':'');});
+  if(o.cur!=null){const x=X(o.cur).toFixed(1);s+='<line x1="'+x+'" x2="'+x+'" y1="'+M.t+'" y2="'+(M.t+ih)+'" stroke="#a78bfa" stroke-width="2"/>';}
+  (o.series||[]).forEach(se=>{
+    if(!se.pts.length)return;
+    s+='<path d="'+se.pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join(' ')+'" fill="none" stroke="'+se.c+'" stroke-width="'+(se.w||2.6)+'"'+(se.d?' stroke-dasharray="'+se.d+'"':'')+' stroke-linejoin="round"/>';
+    if(se.m)se.pts.forEach(p=>{const hi=o.cur!=null&&Math.abs(p[0]-o.cur)<1e-9,r=hi?6:3.4,x=X(p[0]),y=Y(p[1]);
+      if(se.m==='c')s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+r+'" fill="'+se.c+'"/>';
+      else if(se.m==='s')s+='<rect x="'+(x-r).toFixed(1)+'" y="'+(y-r).toFixed(1)+'" width="'+2*r+'" height="'+2*r+'" fill="#fff" stroke="'+se.c+'" stroke-width="2.2"/>';
+      else s+='<path d="M'+x.toFixed(1)+' '+(y-r-1).toFixed(1)+' L'+(x+r+1).toFixed(1)+' '+(y+r).toFixed(1)+' L'+(x-r-1).toFixed(1)+' '+(y+r).toFixed(1)+' Z" fill="#fff" stroke="'+se.c+'" stroke-width="2.2"/>';});
+  });
+  (o.dots||[]).forEach(d=>{s+='<circle cx="'+X(d.x).toFixed(1)+'" cy="'+Y(d.y).toFixed(1)+'" r="6" fill="'+d.c+'" stroke="#fff" stroke-width="2"/>';});
+  return s+'</svg>';
+}
+function legendHtml(S){return S.map(se=>'<span><i style="border-color:'+se.c+';'+(se.d?'border-top-style:dashed':'')+'"></i>'+se.n+'</span>').join('');}
+function fmtLR(v){return v.toFixed(6).replace(/0+$/,'').replace(/\.$/,'');}
+
+/* ---------- figures ---------- */
+const CF='https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/';
+function fig(path,alt,cap,w){
+  return '<figure class="fig"><img src="'+CF+path+'" alt="'+esc(alt)+'" loading="lazy"'+(w?' style="max-width:'+w+'px"':'')+' onerror="this.closest(\'.fig\').classList.add(\'broken\')"><div class="fb" role="note">Image not available offline. '+esc(alt)+'</div>'+(cap?'<figcaption>'+cap+'</figcaption>':'')+'</figure>';
+}
+/* ---------- tabs ---------- */
+function mountTabs(root,items){
+  root.classList.add('tabs');
+  const id='t'+(++uid),list=h('<div class="tablist" role="tablist"></div>'),tabs=[],panels=[];
+  items.forEach((it,i)=>{
+    const b=h('<button type="button" role="tab" id="'+id+'-t'+i+'" aria-controls="'+id+'-p'+i+'">'+it.label+'</button>');
+    const p=h('<div role="tabpanel" id="'+id+'-p'+i+'" aria-labelledby="'+id+'-t'+i+'" tabindex="0"></div>');
+    p.innerHTML=it.html;tabs.push(b);panels.push(p);list.appendChild(b);
+  });
+  root.append(list,...panels);
+  function sel(i,focus){tabs.forEach((b,j)=>{const on=i===j;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;panels[j].hidden=!on;});if(focus)tabs[i].focus();}
+  tabs.forEach((b,i)=>{
+    b.addEventListener('click',()=>sel(i));
+    b.addEventListener('keydown',e=>{
+      if(e.key==='ArrowRight'){e.preventDefault();sel((i+1)%tabs.length,true);}
+      else if(e.key==='ArrowLeft'){e.preventDefault();sel((i-1+tabs.length)%tabs.length,true);}
+      else if(e.key==='Home'){e.preventDefault();sel(0,true);}
+      else if(e.key==='End'){e.preventDefault();sel(tabs.length-1,true);}
+    });
+  });
+  sel(0);
+}
+const code=k=>'<pre data-code="'+k+'"></pre>';
+function wQuiz(root,key){
+  const d=QUIZ[key],name='q'+(++uid),L='abcd';
+  root.classList.add('widget');
+  root.innerHTML='<span class="wtag">Check your understanding</span><fieldset><legend>'+d.q+'</legend>'+d.c.map((c,i)=>'<label class="opt"><input type="radio" name="'+name+'" value="'+i+'"><span>'+(d.letters?L[i]+') ':'')+c+'</span><span class="mk"></span></label>').join('')+'</fieldset><div class="qa"><button type="button" class="btn" disabled>Check answer</button><button type="button" class="btn ghost" hidden>Try again</button></div><div class="readout" aria-live="polite" hidden></div>';
+  const [chk,again]=$$('.btn',root),out=$('.readout',root),opts=$$('.opt',root),radios=$$('input',root);
+  radios.forEach(r=>r.addEventListener('change',()=>{chk.disabled=false;}));
+  chk.addEventListener('click',()=>{
+    const v=radios.findIndex(r=>r.checked);if(v<0)return;
+    opts.forEach((o,i)=>{o.classList.remove('ok','bad');$('.mk',o).textContent='';if(i===d.a){o.classList.add('ok');$('.mk',o).textContent='✓ Correct answer';}else if(i===v){o.classList.add('bad');$('.mk',o).textContent='✗ Your choice';}});
+    out.hidden=false;out.innerHTML='<b>'+(v===d.a?'Correct.':'Not quite.')+'</b> '+d.e;
+    chk.hidden=true;again.hidden=false;radios.forEach(r=>r.disabled=true);
+  });
+  again.addEventListener('click',()=>{
+    opts.forEach(o=>{o.classList.remove('ok','bad');$('.mk',o).textContent='';});
+    radios.forEach(r=>{r.checked=false;r.disabled=false;});out.hidden=true;chk.hidden=false;chk.disabled=true;again.hidden=true;
+  });
+}
+
+/* ---------- contents + progress ---------- */
+function wToc(){
+  const secs=$$('main section[data-title]'),ol=$('#toc ol'),btn=$('#tocBtn'),toc=$('#toc');
+  ol.innerHTML=secs.map((s,i)=>'<li><a href="#'+s.id+'"><b>'+String(i+1).padStart(2,'0')+'</b><span>'+s.dataset.title+'</span></a></li>').join('');
+  function close(){toc.hidden=true;btn.setAttribute('aria-expanded','false');}
+  btn.addEventListener('click',()=>{const o=toc.hidden;toc.hidden=!o;btn.setAttribute('aria-expanded',String(o));});
+  ol.addEventListener('click',e=>{if(e.target.closest('a'))close();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!toc.hidden){close();btn.focus();}});
+  document.addEventListener('click',e=>{if(!toc.hidden&&!e.target.closest('#toc')&&!e.target.closest('#tocBtn'))close();});
+  const links=$$('a',ol);
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){links.forEach(l=>l.removeAttribute('aria-current'));const l=$('a[href="#'+en.target.id+'"]',ol);if(l)l.setAttribute('aria-current','true');}});},{rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(s=>io.observe(s));
+  }
+  const bar=$('#bar');
+  function prog(){const d=document.documentElement,t=d.scrollHeight-d.clientHeight;bar.style.width=(t>0?Math.min(100,d.scrollTop/t*100):0)+'%';}
+  window.addEventListener('scroll',prog,{passive:true});prog();
+}
+const mk=(n,m,f)=>Array.from({length:n},(_,i)=>Array.from({length:m},(_,j)=>f(i,j)));
+function corr(a,k){const kh=k.length,kw=k[0].length;return mk(a.length-kh+1,a[0].length-kw+1,(i,j)=>{let s=0;for(let p=0;p<kh;p++)for(let q=0;q<kw;q++)s+=a[i+p][j+q]*k[p][q];return s;});}
+const flip=k=>k.slice().reverse().map(r=>r.slice().reverse());
+function padM(a,p){return mk(a.length+2*p,a[0].length+2*p,(i,j)=>{const r=i-p,c=j-p;return r>=0&&r<a.length&&c>=0&&c<a[0].length?a[r][c]:0;});}
+const convFull=(a,k)=>corr(padM(a,k.length-1),flip(k));
+const r2=v=>Math.round(v*1e6)/1e6;
+function matHtml(m,o){o=o||{};return '<div class="mat" style="--c:'+m[0].length+(o.max?';max-width:'+o.max+'px':'')+'">'+m.map((r,i)=>r.map((v,j)=>'<div class="cell'+(o.cls?' '+o.cls(i,j,v):'')+'"'+(o.style?' style="'+o.style(i,j,v)+'"':'')+'>'+(o.fmt?o.fmt(v):r2(v))+'</div>').join('')).join('')+'</div>';}
+const heat=(m,v)=>'background:'+mix(Math.abs(v)/(m||1))+';color:'+ink(Math.abs(v)/(m||1));
+const P=fmt,pct=v=>(v*100).toFixed(1)+'%';
+const bar=(l,v,max,txt)=>'<div class="brow"><span class="bl">'+l+'</span><span class="bt"><span class="bf" style="width:'+Math.max(0.5,v/max*100)+'%"></span></span><span class="bv">'+txt+'</span></div>';
+const numF=(ctrl,label,val,cb,o)=>{o=o||{};const lab=h('<label class="fld">'+label+'<input type="number" value="'+val+'"'+(o.min!=null?' min="'+o.min+'"':'')+(o.max!=null?' max="'+o.max+'"':'')+(o.step?' step="'+o.step+'"':'')+'></label>');const i=$('input',lab);i.addEventListener('input',()=>{const v=parseFloat(i.value);if(!isNaN(v))cb(v);});ctrl.appendChild(lab);return i;};
+const FIGS={
+ gen:fig('251/205/original/Screenshot_2026-11-03_173657.png?1793707630','Two classes with a decision boundary versus class densities with new samples','Discriminative vs generative',520),
+ faces:fig('251/206/original/Screenshot_2026-11-03_173735.png?1793707666','Training faces','Training faces',520),
+ leaky:fig('251/208/original/Screenshot_2026-11-03_173825.png?1793707716','ReLU and LeakyReLU activations and gradients, and tanh','Activations and gradients',520),
+ curves:fig('251/209/original/Screenshot_2026-11-03_173913.png?1793707775','Loss and diversity per epoch','Loss and diversity curves',520),
+ snap:fig('251/210/original/Screenshot_2026-11-03_173959.png?1793707807','The same noise vectors at four moments of training','Same noise, four moments',520),
+ newf:fig('251/211/original/Screenshot_2026-11-03_174027.png?1793707837','New faces from the trained generator','New faces',520),
+ near:fig('251/212/original/Screenshot_2026-11-03_174056.png?1793707869','Generated faces above their closest training faces','Copy check',520),
+ walk:fig('251/213/original/Screenshot_2026-11-03_174129.png?1793707899','Ten faces blending from one noise vector to another','Latent space walk',520),
+ plain:fig('251/214/original/Screenshot_2026-11-03_174155.png?1793707924','Faces without spectral normalization','Without spectral norm',520)
+};
+const RUN={"M": {"d": [0.818, 0.85, 1.039, 1.054, 1.114, 1.095, 1.106, 1.089, 1.104, 1.108, 1.093, 1.024, 1.006, 0.97, 0.989, 0.947, 0.947, 0.961, 0.948, 0.912, 0.911, 0.852, 0.871, 0.834, 0.815, 0.803, 0.774, 0.771, 0.75, 0.777], "g": [1.979, 2.152, 1.697, 1.43, 1.339, 1.308, 1.349, 1.33, 1.227, 1.209, 1.236, 1.336, 1.424, 1.458, 1.408, 1.43, 1.442, 1.531, 1.529, 1.513, 1.575, 1.677, 1.608, 1.652, 1.706, 1.767, 1.788, 1.835, 1.819, 1.863], "v": [13.8, 13.4, 12.7, 16.0, 29.6, 23.3, 35.6, 38.3, 40.9, 37.6, 38.3, 40.5, 40.4, 36.4, 42.2, 42.1, 44.2, 43.5, 43.2, 45.5, 43.3, 42.2, 47.6, 45.8, 46.5, 47.2, 44.4, 44.9, 48.6, 46.1]}, "A": {"d": [0.526, 0.309, 0.368, 0.343, 0.305, 0.345, 0.274, 0.336, 0.129, 0.103, 0.406, 0.131, 0.386, 0.211, 0.186, 0.078, 0.16, 0.192, 0.259, 0.24, 0.346, 0.391, 0.213, 0.252, 0.212, 0.129, 0.181, 0.269, 0.233, 0.398], "g": [13.196, 11.62, 12.669, 13.928, 12.064, 11.601, 10.0, 9.894, 7.436, 7.762, 11.04, 7.441, 9.558, 9.797, 8.091, 6.281, 6.858, 6.479, 6.343, 5.394, 5.629, 5.695, 5.081, 5.184, 5.334, 4.865, 5.733, 6.406, 6.082, 5.58], "v": [18.6, 14.6, 12.4, 14.6, 15.7, 18.2, 14.3, 16.2, 21.7, 15.4, 24.8, 21.6, 27.2, 29.1, 26.2, 21.2, 24.4, 36.0, 38.6, 42.1, 38.6, 48.2, 44.4, 40.7, 49.5, 44.3, 46.2, 43.3, 44.5, 40.1]}};
+const QUIZ={
+ q1:{q:'In a GAN, what are the two networks doing?',letters:true,c:['The generator sorts images into real and fake, while the discriminator draws new images from random noise at each step','Both networks turn noise into images, and a third network picks the better set','The generator turns random noise into images; the discriminator scores an image as real or generated','The generator labels the training data, and the discriminator removes noise from generated images'],a:2,e:'The generator maps noise to images. The discriminator is a binary classifier: real (from the dataset) or generated. Option A swaps their jobs.'},
+ q2:{q:'Why does the discriminator use LeakyReLU instead of ReLU?',letters:true,c:['A small slope for negative inputs keeps gradients flowing, so G still gets a signal through D','It squeezes every output into the range 0 to 1 so it can be read as a probability','It lets the discriminator accept images of any size and any number of channels','It removes the need for a loss function, because the activation itself compares real and fake images'],a:0,e:'G is trained through D. With ReLU, units with negative input pass zero gradient and the signal can die. LeakyReLU keeps a small gradient everywhere. Squeezing into 0..1 is what a sigmoid does.'},
+ q3:{q:'Why are the real training images rescaled to the range −1 to 1?',letters:true,c:['Raw pixel values from 0 to 255 are too large for any network to process, so every model needs inputs shrunk to that range','A discriminator can only output probabilities when its input is centered at zero','BatchNorm layers fail when the input contains only positive values','The generator ends in tanh, so its fakes lie in −1..1 and the real images must use the same range'],a:3,e:'Real and fake images must share a scale. Tanh limits the generator to −1..1, so the real images are mapped there too. Networks can take 0..255 inputs, just less comfortably.'},
+ q4:{q:'In practice we train the generator by labeling its images as real (1). What is the main reason?',letters:true,c:['It changes the goal of the game, so the generator tries to weaken the discriminator instead of fooling it','Same goal as minimizing log(1 − D(G(z))), but much stronger gradients when D rejects fakes confidently','It lets the discriminator loss reach exactly zero, which is the best possible result','It removes the need for real images during training'],a:1,e:'Both versions push D(G(z)) up. The non-saturating form avoids the flat gradient early in training. A discriminator loss of zero would mean G has completely failed.'},
+ q5:{q:'A trained GAN makes sharp faces, but nearly all share the same hair color and face shape, whatever the noise. What is this called?',letters:true,c:['Overfitting: the generator has memorized every image in the training set','Vanishing gradient: the discriminator outputs exactly 0.5 on all images','Mode collapse: the generator covers only a few kinds of images','Underfitting: the generator is too small to produce any image structure'],a:2,e:'Sharp but repetitive output is mode collapse: G found a few outputs that fool D and stopped exploring. Memorization would show up in the nearest-neighbor check, and underfitting gives blur.'}
+};
+const sig=a=>1/(1+Math.exp(-a));
+
+function wGen(root){
+  const b=shell(root,'Boundary or distribution?','Two classes of 2-D points. A discriminative model needs only the line between them; a generative model must know where each class lives before it can draw new points (stars). Schematic, drawn with fixed example points.');
+  let m='d';const ctrl=h('<div class="ctrl"></div>'),out=h('<div></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  seg(ctrl,[{label:'Discriminative',value:'d'},{label:'Generative',value:'g'}],m,v=>{m=v;draw();},'Model type');
+  let s=7;const rnd=()=>{s=(s*9301+49297)%233280;return s/233280;},nrm=()=>{let u=0;for(let i=0;i<6;i++)u+=rnd();return (u-3)/.7071*.5;};
+  const A=Array.from({length:50},()=>[-1.5+nrm()*1.6,-1+nrm()*1.6]),B=Array.from({length:50},()=>[1.5+nrm()*1.6,1+nrm()*1.6]),NA=Array.from({length:6},()=>[-1.5+nrm()*1.6,-1+nrm()*1.6]),NB=Array.from({length:6},()=>[1.5+nrm()*1.6,1+nrm()*1.6]);
+  const X=x=>200+x*45,Y=y=>140-y*40;
+  function draw(){let g='<svg viewBox="0 0 400 280" role="img" aria-label="'+(m==='d'?'Two point clusters separated by a dashed decision boundary':'Two point clusters with density contours and new sample stars')+'" style="width:100%;max-width:440px;border:1px solid #e4dcfa;border-radius:10px"><rect width="400" height="280" fill="#faf8ff"/>';
+    A.forEach(p=>g+='<circle cx="'+X(p[0])+'" cy="'+Y(p[1])+'" r="3" fill="#2e1065"/>');B.forEach(p=>g+='<rect x="'+(X(p[0])-3)+'" y="'+(Y(p[1])-3)+'" width="6" height="6" fill="#8b5cf6"/>');
+    if(m==='d')g+='<line x1="'+X(-2.5)+'" y1="'+Y(3.75)+'" x2="'+X(2.5)+'" y2="'+Y(-3.75)+'" stroke="#000" stroke-width="2" stroke-dasharray="6 4"/><text x="14" y="20" font-size="12" font-weight="700" fill="#2e1065">decision boundary</text>';
+    else{[[-1.5,-1,'#2e1065'],[1.5,1,'#8b5cf6']].forEach(c=>[.4,.8,1.2,1.6].forEach(r=>g+='<ellipse cx="'+X(c[0])+'" cy="'+Y(c[1])+'" rx="'+r*45+'" ry="'+r*40+'" fill="none" stroke="'+c[2]+'" stroke-opacity=".6"/>'));
+      const star=(x,y,c)=>'<path d="M'+x+' '+(y-8)+'L'+(x+2.4)+' '+(y-2.5)+'L'+(x+8)+' '+(y-2.5)+'L'+(x+3.5)+' '+(y+1.5)+'L'+(x+5)+' '+(y+7)+'L'+x+' '+(y+3.5)+'L'+(x-5)+' '+(y+7)+'L'+(x-3.5)+' '+(y+1.5)+'L'+(x-8)+' '+(y-2.5)+'L'+(x-2.4)+' '+(y-2.5)+'Z" fill="'+c+'" stroke="#fff"/>';
+      NA.forEach(p=>g+=star(X(p[0]),Y(p[1]),'#2e1065'));NB.forEach(p=>g+=star(X(p[0]),Y(p[1]),'#8b5cf6'));g+='<text x="14" y="20" font-size="12" font-weight="700" fill="#2e1065">density contours and new samples (stars)</text>';}
+    out.innerHTML=g+'<text x="14" y="270" font-size="10" fill="#6d5fa0">circles: class A · squares: class B</text></svg>';
+    ro.innerHTML=m==='d'?'<b>Discriminative:</b> learns a boundary: which class is this point in?':'<b>Generative:</b> learns how the data is spread out, so it can produce new points that fit.';}
+  draw();
+}
+
+function wLoop(root){
+  const b=shell(root,'The two players, step by step','The generator never sees a real image; it learns only from how D reacts. Step through one training iteration.');
+  const S=[['Sample','Take a batch of real faces and a batch of random noise vectors z (length 128).','real: (64, 3, 64, 64) in [−1, 1]; noise: (64, 128)'],['Update D','Real faces get label 1; generated faces get label 0. The fakes are detached, so the gradient stops at D.','d_loss = BCE(D(real), 1) + BCE(D(G(z)), 0)'],['Fresh noise','Sample new noise and generate fresh fakes for the generator step.','z → G(z)'],['Update G','Label the fresh fakes 1. D’s weights are frozen, but the gradient still flows through D into G.','g_loss = BCE(D(G(z)), 1)'],['Repeat','D wants D(G(z)) near 0 and G wants it near 1: a better D forces better fakes, and a better G forces D to look harder.','min over G, max over D of E[log D(x)] + E[log(1 − D(G(z)))]']];
+  let k=0;const bar_=h('<div class="stepbar"><button type="button" class="btn ghost sm" data-a="prev">◀ Prev</button><input type="range" min="0" max="4" value="0" aria-label="Step"><button type="button" class="btn sm" data-a="next">Next ▶</button></div>'),fl=h('<div class="flow"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(bar_,fl,ro);const rng=$('input',bar_);
+  function draw(){rng.value=k;fl.innerHTML=S.map((s,i)=>'<span'+(i===k?' style="background:var(--v900);color:#fff;border-color:var(--v900)"':'')+'>'+s[0]+'</span>').join('');ro.innerHTML='<b>'+(k+1)+'. '+S[k][0]+'.</b> '+S[k][1]+'<br><code>'+S[k][2]+'</code>';}
+  bar_.addEventListener('click',e=>{const a=e.target.dataset.a;if(a==='prev')k=Math.max(0,k-1);else if(a==='next')k=Math.min(4,k+1);else return;draw();});rng.addEventListener('input',()=>{k=+rng.value;draw();});draw();
+}
+
+function wLeaky(root){
+  const b=shell(root,'ReLU vs LeakyReLU','G learns only from gradients that pass back through D. Move x to see the activation and its slope; LeakyReLU uses slope 0.2 for negative inputs.');
+  let x=-1.5;const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="duo"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  numF(ctrl,'Input x',x,v=>{x=Math.max(-3,Math.min(3,v));draw();},{min:-3,max:3,step:.5});
+  function draw(){const r=Math.max(0,x),l=x>0?x:.2*x,gr=x>0?1:0,gl=x>0?1:.2;
+    out.innerHTML='<div class="pn"><div class="pl">Output</div><div class="bars">'+bar('ReLU',Math.abs(r),3,r.toFixed(2))+bar('LeakyReLU',Math.abs(l),3,l.toFixed(2))+'</div></div><div class="pn"><div class="pl">Gradient (slope)</div><div class="bars">'+bar('ReLU',gr,1,String(gr))+bar('LeakyReLU',gl,1,String(gl))+'</div></div>';
+    ro.innerHTML=x>0?'For x &gt; 0 both pass the signal with slope 1.':'For x &lt; 0: ReLU outputs 0 with slope <b>0</b>, so no gradient passes and the signal can die. LeakyReLU keeps slope <b>0.2</b>, so G still gets a signal through D.';}
+  draw();
+}
+
+function convP(n,k,s,p){return (n-1)*s-2*p+k;}
+function wGenNet(root){
+  const b=shell(root,'Growing noise into a face','Transposed convolution: out = (in − 1)·stride − 2·padding + kernel. Change the first kernel to trace the sizes.');
+  let k0=4;const ctrl=h('<div class="ctrl"></div>'),out=h('<div></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  const sg=h('<div class="seg" role="group" aria-label="First kernel size"></div>');[3,4].forEach(k=>{const bt=h('<button type="button" aria-pressed="false">first kernel '+k+'</button>');bt.addEventListener('click',()=>{k0=k;draw();});sg.appendChild(bt);});ctrl.appendChild(sg);
+  function draw(){$$('button',sg).forEach((x,i)=>x.setAttribute('aria-pressed',String([3,4][i]===k0)));
+    let n=1,rows=[['Noise z','1 × 1','128 values']];const L=[[k0,1,0],[4,2,1],[4,2,1],[4,2,1],[4,2,1]];
+    L.forEach((l,i)=>{const o=convP(n,...l);rows.push(['ConvTranspose k'+l[0]+' s'+l[1]+' p'+l[2],n+'×'+n+' → '+o+'×'+o,'('+n+' − 1)·'+l[1]+' − '+2*l[2]+' + '+l[0]+' = '+o]);n=o;});
+    out.innerHTML='<table class="tw"><thead><tr><th>Layer</th><th>Size</th><th>Formula</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+r.join('</td><td>')+'</td></tr>').join('')+'</tbody></table>';
+    ro.innerHTML=(k0===4?'With kernel 4 you start at 4 × 4 and end at <b>64 × 64</b>: the generator’s actual size path (its real network also has a 3 × 3 convolution at 32 × 32 that keeps the size).':'With kernel 3 in the first layer the result is 3 × 3, then 6, 12, 24 and <b>48 × 48</b>: the lecture’s “check the AI’s arithmetic” answer.')+'<br>Lecture checks: (2,2,1,0) → '+convP(2,2,1,0)+', (1,4,1,0) → '+convP(1,4,1,0)+', (4,4,2,1) → '+convP(4,4,2,1)+', all matching PyTorch.';}
+  draw();
+}
+
+function wParams(root){
+  const b=shell(root,'Shapes and parameters','Select a network. Counts are computed from the layer definitions and checked against the lecture.');
+  const cv=(a,c,k,bias)=>a*c*k*k+(bias?c:0),bn=c=>2*c;
+  const Gl=[['ConvTranspose 128→512, k4','512 × 4 × 4',cv(128,512,4,0)],['BatchNorm 512','',bn(512)],['ConvTranspose 512→256','256 × 8 × 8',cv(512,256,4,0)],['BatchNorm 256','',bn(256)],['ConvTranspose 256→128','128 × 16 × 16',cv(256,128,4,0)],['BatchNorm 128','',bn(128)],['ConvTranspose 128→64','64 × 32 × 32',cv(128,64,4,0)],['BatchNorm 64','',bn(64)],['Conv 3×3, 64→64','64 × 32 × 32',cv(64,64,3,0)],['BatchNorm 64','',bn(64)],['ConvTranspose 64→3 + tanh','3 × 64 × 64',cv(64,3,4,1)]];
+  const Dl=[['Conv 3→64, k4 s2 + LeakyReLU','64 × 32 × 32',cv(3,64,4,1)],['Conv 64→128','128 × 16 × 16',cv(64,128,4,1)],['Conv 128→256','256 × 8 × 8',cv(128,256,4,1)],['Conv 256→512','512 × 4 × 4',cv(256,512,4,1)],['Flatten + Linear 8192→1','1 logit',8192+1]];
+  let m='g';const ctrl=h('<div class="ctrl"></div>'),out=h('<div></div>'),ro=h('<div class="readout"></div>');b.append(ctrl,out,ro);
+  seg(ctrl,[{label:'Generator',value:'g'},{label:'Discriminator (spectral norm)',value:'d'}],m,v=>{m=v;draw();},'Network');
+  function draw(){const L=m==='g'?Gl:Dl,tot=L.reduce((a,r)=>a+r[2],0);out.innerHTML='<table class="tw"><thead><tr><th>Layer</th><th>Output</th><th>Parameters</th></tr></thead><tbody>'+L.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2].toLocaleString()+'</td></tr>').join('')+'</tbody></table>';
+    const lec=m==='g'?3843075:2764737;ro.innerHTML='Total (computed): <b>'+tot.toLocaleString()+'</b>'+(tot===lec?' — matches the lecture’s '+lec.toLocaleString()+'.':'.')+(m==='g'?' The generator ends in tanh, so fakes lie in −1..1; real images are rescaled to the same range.':' Four stride-2 convolutions shrink 64 → 32 → 16 → 8 → 4 while adding channels. The output is a raw logit; the loss applies the sigmoid. Spectral normalization rescales each layer’s weights so D cannot change its score too sharply between similar images.');}
+  draw();
+}
+
+function wSat(root){
+  const b=shell(root,'Why label fakes as real?','a is D’s raw score for a generated image, so D(G(z)) = sigmoid(a). The chart shows the gradient each generator loss sends back.');
+  let a=-4;const ctrl=h('<div class="ctrl"></div>'),leg=h('<div class="legend"></div>'),pl=h('<div class="plot"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,leg,pl,ro);
+  numF(ctrl,'Score a',a,v=>{a=Math.max(-6,Math.min(6,v));draw();},{min:-6,max:6,step:1});
+  const pts=f=>Array.from({length:61},(_,i)=>{const x=-6+i*.2;return [x,f(x)];});
+  function draw(){const S=[{n:'Minimax: log(1 − D)',pts:pts(x=>Math.abs(sig(x))),c:'#8b5cf6',d:'7 5'},{n:'Non-saturating: −log D',pts:pts(x=>1-sig(x)),c:'#2e1065',d:''}];
+    leg.innerHTML=legendHtml(S);pl.innerHTML=chart({W:640,H:240,M:{l:50,r:16,t:16,b:40},x:[-6,6],y:[0,1],xt:[-6,-4,-2,0,2,4,6],yt:[0,.25,.5,.75,1],yf:v=>v,xlabel:'D’s raw score for a fake (a)',label:'Size of the gradient for each generator loss against the score',series:S,cur:undefined});
+    const d=sig(a);ro.innerHTML='a = '+a+' → D(G(z)) = <b>'+d.toFixed(4)+'</b>. Gradient size: minimax <b>'+d.toFixed(4)+'</b>, non-saturating <b>'+(1-d).toFixed(4)+'</b> (computed; the lecture prints them with a minus sign).<br>'+(d<.5?'D is confident the fake is fake: the minimax gradient is almost flat, but the non-saturating gradient is strong, exactly when G needs to learn most.':'When D is fooled, the non-saturating gradient is the smaller one.')+(a===-6?'<br>Lecture table at a = −6, −4, −2, 0, 2 gives D(G(z)) 0.0025, 0.0180, 0.1192, 0.5000, 0.8808.':'');}
+  draw();
+}
+
+function wBCE(root){
+  const b=shell(root,'The two losses by hand','d_loss = −ln D(real) − ln(1 − D(G(z))); g_loss = −ln D(G(z)). Enter D’s probabilities.');
+  const v={r:.5,f:.5};const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  numF(ctrl,'D(real)',v.r,x=>{v.r=Math.max(.001,Math.min(.999,x));draw();},{min:.001,max:.999,step:.05});numF(ctrl,'D(G(z))',v.f,x=>{v.f=Math.max(.001,Math.min(.999,x));draw();},{min:.001,max:.999,step:.05});
+  function draw(){const d=-Math.log(v.r)-Math.log(1-v.f),g=-Math.log(v.f);out.innerHTML=bar('d_loss',Math.min(d,6),6,d.toFixed(3))+bar('g_loss',Math.min(g,6),6,g.toFixed(3));
+    ro.innerHTML='If D can only guess 50/50, d_loss = 2 ln 2 = <b>1.386</b> and g_loss = ln 2 = <b>0.693</b> (lecture equilibrium values). Real runs wobble around them rather than landing on them. d_loss near 0 with a climbing g_loss means D is winning and G gets no useful signal.<br>A falling loss does not mean better pictures: the loss shows the balance between the two networks, not quality. Look at the faces.';}
+  draw();
+}
+
+function wCurves(root){
+  const b=shell(root,'Training logs: with and without spectral normalization','30 epochs each, 5,000 faces. Hover the chart or use ← → to read an epoch.');
+  let met='d',idx=29;const ctrl=h('<div class="ctrl"></div>');seg(ctrl,[{label:'D loss',value:'d'},{label:'G loss',value:'g'},{label:'Diversity',value:'v'}],met,x=>{met=x;draw();},'Metric');
+  const leg=h('<div class="legend"></div>'),pl=h('<div class="plot" tabindex="0" role="group" aria-label="Training chart. Use left and right arrow keys to change epoch."></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,leg,pl,ro);
+  const W=640,M={l:56,r:16,t:16,b:40},pts=a=>a.map((v,i)=>[i+1,v]),Y={d:[[0,1.4],[0,.35,.7,1.05,1.4],'D loss'],g:[[0,14],[0,3.5,7,10.5,14],'G loss'],v:[[0,60],[0,15,30,45,60],'Diversity']};
+  function draw(){const y=Y[met],S=[{n:'With spectral norm',pts:pts(RUN.M[met]),c:'#2e1065',d:'',m:'c'},{n:'Without spectral norm',pts:pts(RUN.A[met]),c:'#8b5cf6',d:'7 5',m:'s'}];
+    leg.innerHTML=legendHtml(S);pl.innerHTML=chart({W,H:250,M,x:[1,30],y:y[0],xt:[1,5,10,15,20,25,30],yt:y[1],yf:v=>v,xlabel:'Epoch',label:y[2]+' per epoch with and without spectral normalization',series:S,cur:idx+1});
+    const f=k=>RUN.M[k][idx].toFixed(3),g=k=>RUN.A[k][idx].toFixed(3);
+    ro.innerHTML='<b>Epoch '+(idx+1)+'/30</b> — with: d_loss '+f('d')+', g_loss '+f('g')+', diversity '+RUN.M.v[idx].toFixed(1)+'<br>without: d_loss '+g('d')+', g_loss '+g('g')+', diversity '+RUN.A.v[idx].toFixed(1)+(met==='v'?'<br><span class="note">Real faces: diversity 50.1 (32 faces).</span>':'');}
+  function at(e){const r=pl.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W;idx=Math.max(0,Math.min(29,Math.round(1+(x-M.l)/(W-M.l-M.r)*29)-1));draw();}
+  pl.addEventListener('pointermove',at);pl.addEventListener('pointerdown',at);pl.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){idx=Math.min(29,idx+1);draw();e.preventDefault();}else if(e.key==='ArrowLeft'){idx=Math.max(0,idx-1);draw();e.preventDefault();}});draw();
+}
+
+function wDiag(root){
+  const b=shell(root,'Reading the symptoms','Pick what you observe during training.');
+  const S=[['Both losses noisy and in the same range, diversity rising','Healthy.','Our main run: d_loss about 0.75–1.1, g_loss about 1.2–2.2, and diversity climbing to 46.1 (0.92 of the real 50.1).'],['d_loss near 0 and g_loss climbing','D is winning and G gets no useful signal (vanishing gradients).','Without spectral normalization the run had d_loss about 0.1–0.5 and g_loss about 5–14, with final diversity 0.80 of real.'],['Diversity stuck well below real','G is repeating a few faces: mode collapse.','The basic loss does not punish it, which is why we track diversity and watch samples. Sharp faces that nearly all share hair color and face shape are the typical picture.']];
+  let k=0;const ctrl=h('<div class="ctrl"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,ro);
+  seg(ctrl,S.map((s,i)=>({label:['Balanced, diversity rising','d_loss ≈ 0, g_loss up','Low diversity'][i],value:i})),k,v=>{k=v;draw();},'Symptom');
+  function draw(){ro.innerHTML='<b>'+S[k][0]+'</b><br>→ '+S[k][1]+'<br>'+S[k][2];}draw();
+}
+
+function wApps(root){
+  const b=shell(root,'Where GANs are used','Three well-known GAN families.');
+  mountTabs(b,[{label:'StyleGAN',html:'<p>Builds on progressive GANs, which train on tiny images first and grow to high resolution. It gives very realistic faces and separate control over coarse features (pose) and fine ones (freckles). <a href="https://arxiv.org/abs/1812.04948">Paper</a>.</p>'},{label:'SRGAN',html:'<p>Turns a low-resolution image into a high-resolution one. The discriminator pushes the output toward sharp, natural detail instead of a smooth average. <a href="https://arxiv.org/abs/1609.04802">Paper</a>.</p>'},{label:'CycleGAN',html:'<p>Translates between two styles (horses to zebras) without paired examples. Two generators translate in opposite directions, and a <b>cycle-consistency</b> loss (an L1 distance between the original and the image translated there and back) keeps the content intact. <a href="https://arxiv.org/abs/1703.10593">Paper</a>.</p>'}]);
+}
+function fillCode(){$$('[data-code]').forEach(el=>{el.textContent=CODE[el.dataset.code]||'';});}
+const W={gen:wGen,loop:wLoop,leaky:wLeaky,gnet:wGenNet,params:wParams,sat:wSat,bce:wBCE,curves:wCurves,diag:wDiag,apps:wApps};
+function init(){
+  $$('[data-fig]').forEach(el=>{el.innerHTML=el.dataset.fig.split(',').map(k=>FIGS[k]||'').join('');});
+  fillCode();
+  $$('[data-w]').forEach(el=>{const k=el.dataset.w;if(k==='quiz'){wQuiz(el,el.dataset.q);return;}if(W[k])W[k](el);});
+  wToc();
+}
+const CODE={"gen": "import numpy as np\nimport matplotlib.pyplot as plt\n\nrng = np.random.default_rng(0)\na = rng.normal([-1.5, -1.0], 0.8, (150, 2))\nb = rng.normal([1.5, 1.0], 0.8, (150, 2))\n\nfig, ax = plt.subplots(1, 2, figsize=(10, 4))\n\n# Discriminative: learn the boundary between the classes\nax[0].scatter(*a.T, s=10, label='class A')\nax[0].scatter(*b.T, s=10, label='class B')\nax[0].plot([-2.5, 2.5], [3.75, -3.75], 'k--', label='decision boundary')\nax[0].set_title('Discriminative: where is the boundary?')\nax[0].legend(loc='upper left')\n\n# Generative: learn where each class lives, then draw new points from it\ngx, gy = np.meshgrid(np.linspace(-4, 4, 100), np.linspace(-3.5, 3.5, 100))\nfor center, color in [((-1.5, -1.0), 'tab:blue'), ((1.5, 1.0), 'tab:orange')]:\n    density = np.exp(-((gx - center[0]) ** 2 + (gy - center[1]) ** 2) / (2 * 0.8 ** 2))\n    ax[1].contour(gx, gy, density, levels=4, colors=color)\n    new = rng.normal(center, 0.8, (8, 2))\n    ax[1].scatter(*new.T, marker='*', s=90, color=color)\nax[1].set_title('Generative: how is each class spread out?')\n\nfor x in ax:\n    x.set_xlim(-4, 4)\n    x.set_ylim(-3.5, 3.5)\nplt.show()", "setup": "import math\nimport random\nimport cv2\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nfrom torch.utils.data import DataLoader, TensorDataset\nfrom torch.nn.utils.parametrizations import spectral_norm\n\nSEED = 42\nN_TRAIN = 5000       # how many faces to generate\nBATCH = 64\nEPOCHS = 30\nLATENT = 128         # length of the noise vector\n\nrandom.seed(SEED)\nnp.random.seed(SEED)\ntorch.manual_seed(SEED)\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nprint('Using device:', device)\n\nfaces = make_faces(N_TRAIN)          # uint8 array: (number of faces, 64, 64, 3)\nprint(f'Faces: {faces.shape}, dtype {faces.dtype}, pixel range {faces.min()} to {faces.max()}')\n\ndef show_grid(images, rows=4, cols=8, title=None):\n    \"\"\"Show images (uint8, shape N x H x W x 3) as a grid.\"\"\"\n    h, w = images.shape[1:3]\n    grid = images[:rows * cols].reshape(rows, cols, h, w, 3).transpose(0, 2, 1, 3, 4).reshape(rows * h, cols * w, 3)\n    plt.figure(figsize=(cols * 1.2, rows * 1.2))\n    plt.imshow(grid)\n    plt.axis('off')\n    if title:\n        plt.title(title)\n    plt.show()\n\nshow_grid(faces, title='Training faces')\n\ndef to_unit(x):\n    \"\"\"uint8 batch (N, 64, 64, 3) -> float tensor (N, 3, 64, 64) scaled to [-1, 1].\"\"\"\n    return x.permute(0, 3, 1, 2).float() / 127.5 - 1\n\ndef make_loader(seed=SEED):\n    return DataLoader(TensorDataset(torch.from_numpy(faces)), batch_size=BATCH, shuffle=True,\n                      drop_last=True, generator=torch.Generator().manual_seed(seed))\n\nbatch = to_unit(next(iter(make_loader()))[0])\nprint('Batch shape:', tuple(batch.shape))\nprint(f'Pixel range: {batch.min().item():.2f} to {batch.max().item():.2f}')", "facegen": "#@title Face generator (no need to read it line by line)\nimport cv2\nimport numpy as np\n\nIMG = 64\nBIG = 4 * IMG                      # faces are drawn at 4x and shrunk, which smooths the edges\n\nHAIR = [(30, 28, 40), (70, 45, 40), (120, 80, 50), (240, 210, 110), (200, 60, 60), (245, 150, 190),\n        (80, 120, 220), (130, 200, 240), (150, 90, 200), (100, 190, 120), (215, 215, 225), (240, 150, 60)]\nEYES = [(60, 120, 220), (60, 170, 110), (140, 90, 50), (150, 80, 200), (210, 70, 70), (230, 170, 50)]\nSKIN = [(255, 232, 214), (255, 224, 200), (250, 214, 190), (240, 200, 170)]\n\n\ndef shade(color, f):\n    return tuple(int(np.clip(c * f, 0, 255)) for c in color)\n\n\ndef pick(rng, options):\n    return tuple(int(v) for v in options[rng.integers(len(options))])\n\n\ndef make_face(seed):\n    \"\"\"One 64 x 64 anime-style face. The same seed always gives the same face.\"\"\"\n    rng = np.random.default_rng(seed)\n    img = np.zeros((BIG, BIG, 3), np.uint8)\n\n    # soft pastel background\n    h = int(rng.integers(0, 180))\n    top = cv2.cvtColor(np.uint8([[[h, 60, 250]]]), cv2.COLOR_HSV2RGB)[0, 0].astype(float)\n    bottom = cv2.cvtColor(np.uint8([[[(h + 20) % 180, 90, 235]]]), cv2.COLOR_HSV2RGB)[0, 0].astype(float)\n    t = np.linspace(0, 1, BIG)[:, None, None]\n    img[:] = (top * (1 - t) + bottom * t).astype(np.uint8)\n\n    hair, eye, skin = pick(rng, HAIR), pick(rng, EYES), pick(rng, SKIN)\n    style = rng.choice(['short', 'long', 'twin', 'bob'])\n    cx, cy = BIG // 2 + int(rng.integers(-8, 9)), BIG // 2 + 8 + int(rng.integers(-8, 9))\n    fw, fh = int(rng.integers(56, 66)), int(rng.integers(64, 74))\n\n    def ell(c, axes, color, a=0, s=0, e=360):\n        cv2.ellipse(img, (int(c[0]), int(c[1])), (int(axes[0]), int(axes[1])), a, s, e, color, -1)\n\n    def poly(pts, color):\n        cv2.fillPoly(img, [np.array(pts, np.int32)], color)\n\n    # hair behind the face\n    dark = shade(hair, 0.75)\n    if style == 'long':\n        ell((cx, cy + 10), (fw + 14, fh + 38), dark)\n    elif style == 'bob':\n        ell((cx, cy + 8), (fw + 12, fh + 8), dark)\n    elif style == 'twin':\n        for s in (-1, 1):\n            ell((cx + s * (fw + 22), cy + 40), (16, 44), dark)\n            ell((cx + s * (fw + 8), cy - 24), (10, 10), shade(hair, 0.6))\n\n    # neck and face\n    cv2.rectangle(img, (cx - 14, cy + fh - 20), (cx + 14, cy + fh + 28), shade(skin, 0.92), -1)\n    ell((cx, cy), (fw, fh), skin)\n    ell((cx, cy + fh // 2), (int(fw * 0.8), int(fh * 0.5)), skin)\n\n    # cheeks\n    if rng.random() < 0.6:\n        layer = img.copy()\n        for s in (-1, 1):\n            cv2.ellipse(layer, (cx + s * 34, cy + 36), (13, 7), 0, 0, 360, (255, 140, 150), -1)\n        img[:] = cv2.addWeighted(layer, 0.4, img, 0.6, 0)\n\n    # eyes\n    ey = cy + 6\n    ew, eh = int(rng.integers(14, 19)), int(rng.integers(18, 24))\n    gap = int(rng.integers(28, 36))\n    for s in (-1, 1):\n        ex = cx + s * gap\n        ell((ex, ey), (ew, eh), (255, 255, 255))\n        ell((ex, ey + 2), (ew - 4, eh - 3), eye)\n        ell((ex, ey + 2), (ew - 4, eh - 3), shade(eye, 0.6), 0, 0, 180)\n        ell((ex, ey + 4), (6, 10), (25, 20, 30))\n        cv2.circle(img, (ex - 5, ey - 6), 4, (255, 255, 255), -1)\n        cv2.ellipse(img, (ex, ey), (ew, eh), 0, 190, 350, (35, 25, 40), 4)\n        tilt = int(rng.integers(-5, 6))\n        cv2.line(img, (ex - ew, ey - eh - 12 + s * tilt), (ex + ew, ey - eh - 12 - s * tilt), shade(hair, 0.6), 3)\n\n    # nose and mouth\n    cv2.circle(img, (cx, cy + 36), 2, shade(skin, 0.75), -1)\n    m = rng.integers(3)\n    if m == 0:\n        cv2.ellipse(img, (cx, cy + 52), (10, 6), 0, 0, 180, (190, 80, 90), 3)\n    elif m == 1:\n        ell((cx, cy + 54), (6, 7), (170, 60, 80))\n    else:\n        cv2.line(img, (cx - 8, cy + 54), (cx + 8, cy + 54), (190, 80, 90), 3)\n\n    # hair in front: cap and bangs\n    ell((cx, cy - 10), (fw + 6, fh - 6), hair, 0, 180, 360)\n    n = int(rng.integers(3, 6))\n    for k in range(n):\n        x0 = cx - fw + 4 + k * (2 * fw - 8) // n\n        x1 = cx - fw + 4 + (k + 1) * (2 * fw - 8) // n\n        poly([(x0, cy - fh // 2 - 6), (x1, cy - fh // 2 - 6), ((x0 + x1) // 2 + int(rng.integers(-6, 7)), cy - int(rng.integers(0, 28)))], hair)\n    if style in ('short', 'bob'):\n        for s in (-1, 1):\n            poly([(cx + s * (fw + 4), cy - 20), (cx + s * (fw - 14), cy - 20), (cx + s * (fw - 6), cy + 24)], hair)\n    if style == 'long':\n        for s in (-1, 1):\n            poly([(cx + s * (fw + 4), cy - 20), (cx + s * (fw - 12), cy - 20), (cx + s * (fw - 2), cy + fh)], hair)\n\n    # extras\n    if rng.random() < 0.3:\n        ribbon = pick(rng, HAIR + EYES)\n        rx, ry = cx + int(rng.choice([-1, 1])) * (fw - 16), cy - fh + 14\n        poly([(rx, ry), (rx - 22, ry - 14), (rx - 22, ry + 14)], ribbon)\n        poly([(rx, ry), (rx + 22, ry - 14), (rx + 22, ry + 14)], ribbon)\n        cv2.circle(img, (rx, ry), 6, shade(ribbon, 0.7), -1)\n    if rng.random() < 0.2:\n        cv2.ellipse(img, (cx + 6, cy - fh - 14), (14, 22), 20, 200, 340, hair, 5)\n\n    out = cv2.resize(img, (IMG, IMG), interpolation=cv2.INTER_AREA)\n    return out\n\n\ndef make_faces(n, first_seed=0):\n    return np.stack([make_face(first_seed + i) for i in range(n)])", "leaky": "x = torch.linspace(-3, 3, 200, requires_grad=True)\n\ndef slope(fn):\n    x.grad = None\n    fn(x).sum().backward()\n    return x.grad.clone()\n\nfig, ax = plt.subplots(1, 3, figsize=(12, 3))\nax[0].plot(x.detach(), F.relu(x).detach(), label='ReLU')\nax[0].plot(x.detach(), F.leaky_relu(x, 0.2).detach(), label='LeakyReLU (0.2)')\nax[0].set_title('Activation')\nax[1].plot(x.detach(), slope(F.relu), label='ReLU')\nax[1].plot(x.detach(), slope(lambda t: F.leaky_relu(t, 0.2)), label='LeakyReLU (0.2)')\nax[1].set_title('Gradient (slope)')\nax[2].plot(x.detach(), torch.tanh(x).detach())\nax[2].set_title('tanh: output stays in (-1, 1)')\nfor a in ax[:2]:\n    a.legend()\nplt.show()", "disc": "def make_discriminator(spectral=True, base=64):\n    \"\"\"Four stride-2 convolutions (64 -> 32 -> 16 -> 8 -> 4 pixels), then one linear layer that gives a logit.\"\"\"\n    def block(c_in, c_out, first=False):\n        conv = nn.Conv2d(c_in, c_out, kernel_size=4, stride=2, padding=1, bias=spectral)\n        if spectral:\n            return [spectral_norm(conv), nn.LeakyReLU(0.2, inplace=True)]\n        norm = [] if first else [nn.BatchNorm2d(c_out)]\n        return [conv, *norm, nn.LeakyReLU(0.2, inplace=True)]\n\n    head = nn.Linear(8 * base * 4 * 4, 1)\n    return nn.Sequential(\n        *block(3, base, first=True), *block(base, 2 * base), *block(2 * base, 4 * base), *block(4 * base, 8 * base),\n        nn.Flatten(), spectral_norm(head) if spectral else head,\n        nn.Flatten(0),                                  # (N, 1) -> (N,)\n    )\n\ndef init_weights(m):\n    \"\"\"Start weights from a normal distribution with standard deviation 0.02.\"\"\"\n    if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d, nn.Linear)):\n        nn.init.normal_(m.weight, 0.0, 0.02)\n    elif isinstance(m, nn.BatchNorm2d):\n        nn.init.normal_(m.weight, 1.0, 0.02)\n        nn.init.zeros_(m.bias)\n\nD = make_discriminator().to(device)\nprint(D)\nprint('Output for a batch of 4 images:', tuple(D(to_unit(torch.from_numpy(faces[:4])).to(device)).shape))\nprint(f'Parameters: {sum(p.numel() for p in D.parameters()):,}')", "convt": "def conv_t_out(n, kernel, stride, padding=0):\n    return (n - 1) * stride - 2 * padding + kernel\n\nfor n, k, s, p in [(2, 2, 1, 0), (1, 4, 1, 0), (4, 4, 2, 1)]:\n    real = nn.ConvTranspose2d(1, 1, kernel_size=k, stride=s, padding=p)(torch.zeros(1, 1, n, n)).shape[-1]\n    print(f'input {n}x{n}, kernel {k}, stride {s}, padding {p}: formula {conv_t_out(n, k, s, p)}, PyTorch {real}')", "genr": "class Generator(nn.Module):\n    def __init__(self, latent_dim=LATENT, base=64):\n        super().__init__()\n\n        def up(c_in, c_out, kernel=4, stride=2, padding=1):\n            return [nn.ConvTranspose2d(c_in, c_out, kernel, stride, padding, bias=False),\n                    nn.BatchNorm2d(c_out), nn.ReLU(inplace=True)]\n\n        self.net = nn.Sequential(\n            *up(latent_dim, 8 * base, 4, 1, 0),                 # 1 x 1   -> 4 x 4\n            *up(8 * base, 4 * base),                            # 4 x 4   -> 8 x 8\n            *up(4 * base, 2 * base),                            # 8 x 8   -> 16 x 16\n            *up(2 * base, base),                                # 16 x 16 -> 32 x 32\n            nn.Conv2d(base, base, 3, 1, 1, bias=False), nn.BatchNorm2d(base), nn.ReLU(inplace=True),\n            nn.ConvTranspose2d(base, 3, 4, 2, 1), nn.Tanh(),    # 32 x 32 -> 64 x 64, pixels in [-1, 1]\n        )\n\n    def forward(self, z):\n        return self.net(z.view(z.size(0), -1, 1, 1))            # noise vector -> 1 x 1 \"image\"\n\nG = Generator().to(device)\nz = torch.randn(2, LATENT, device=device)\n\nshapes = []\nhooks = [m.register_forward_hook(lambda mod, inp, out: shapes.append((type(mod).__name__, tuple(out.shape[1:]))))\n         for m in G.net if isinstance(m, (nn.ConvTranspose2d, nn.Conv2d))]\nwith torch.no_grad():\n    out = G(z)\nfor h in hooks:\n    h.remove()\n\nfor name, shape in shapes:\n    print(f'{name:<16} -> {shape}')\nprint(f'Parameters: {sum(p.numel() for p in G.parameters()):,}')", "sat": "# a = the discriminator's raw score for a generated image, so D(G(z)) = sigmoid(a)\na = torch.tensor([-6.0, -4.0, -2.0, 0.0, 2.0], requires_grad=True)\nd = torch.sigmoid(a)\n\nminimax = torch.log(1 - d)         # generator minimizes this\nnon_saturating = -torch.log(d)     # generator minimizes this instead (same as labeling fakes \"real\")\ng_minimax, = torch.autograd.grad(minimax.sum(), a, retain_graph=True)\ng_non_sat, = torch.autograd.grad(non_saturating.sum(), a)\n\nprint(f\"{'D(G(z))':>9} {'gradient, minimax':>19} {'gradient, non-saturating':>26}\")\nfor dv, g1, g2 in zip(d, g_minimax, g_non_sat):\n    print(f'{dv.item():>9.4f} {g1.item():>19.4f} {g2.item():>26.4f}')", "train": "def set_grad(model, flag):\n    for p in model.parameters():\n        p.requires_grad_(flag)\n\ndef to_uint8(images):\n    \"\"\"Generator output in [-1, 1] -> uint8 array (N, H, W, 3) for display.\"\"\"\n    return ((images * 0.5 + 0.5).clamp(0, 1) * 255).byte().permute(0, 2, 3, 1).cpu().numpy()\n\ndef diversity(images):\n    \"\"\"Average distance between pairs of images. A low value means the images look alike.\"\"\"\n    flat = images.reshape(len(images), -1)\n    return torch.cdist(flat, flat).sum().item() / (len(flat) * (len(flat) - 1))\n\nreal_diversity = diversity(to_unit(torch.from_numpy(faces[:32])))\nprint(f'Diversity of 32 real faces: {real_diversity:.1f}')\n\ndef train_gan(spectral=True, epochs=EPOCHS, lr=2e-4, seed=SEED):\n    torch.manual_seed(seed)\n    G = Generator().to(device)\n    G.apply(init_weights)\n    D = make_discriminator(spectral).to(device)\n    if not spectral:\n        D.apply(init_weights)\n\n    opt_g = torch.optim.Adam(G.parameters(), lr=lr, betas=(0.5, 0.999))\n    opt_d = torch.optim.Adam(D.parameters(), lr=lr, betas=(0.5, 0.999))\n    bce = nn.BCEWithLogitsLoss()                 # applies the sigmoid inside the loss\n\n    fixed_z = torch.randn(32, LATENT, device=device)     # same noise every epoch, so we watch the same faces improve\n    snapshot_epochs = set(np.linspace(1, epochs, 4).astype(int).tolist())\n    history = {'d_loss': [], 'g_loss': [], 'diversity': []}\n    snapshots = {}\n\n    for epoch in range(1, epochs + 1):\n        d_sum = g_sum = 0.0\n        loader = make_loader(seed + epoch)\n        for (xb,) in loader:\n            real = to_unit(xb.to(device))\n            b = len(real)\n            ones, zeros = torch.ones(b, device=device), torch.zeros(b, device=device)\n\n            # Part 1: update the discriminator. Real images should score 1, generated images 0.\n            fake = G(torch.randn(b, LATENT, device=device))\n            d_loss = bce(D(real), ones) + bce(D(fake.detach()), zeros)\n            opt_d.zero_grad()\n            d_loss.backward()\n            opt_d.step()\n\n            # Part 2: update the generator. Freeze D, label fresh fakes as real, and push the gradient through D.\n            set_grad(D, False)\n            g_loss = bce(D(G(torch.randn(b, LATENT, device=device))), ones)\n            opt_g.zero_grad()\n            g_loss.backward()\n            opt_g.step()\n            set_grad(D, True)\n\n            d_sum += d_loss.item()\n            g_sum += g_loss.item()\n\n        G.eval()\n        with torch.no_grad():\n            samples = G(fixed_z)\n        G.train()\n        history['d_loss'].append(d_sum / len(loader))\n        history['g_loss'].append(g_sum / len(loader))\n        history['diversity'].append(diversity(samples))\n        if epoch in snapshot_epochs:\n            snapshots[epoch] = to_uint8(samples)\n        print(f\"epoch {epoch:2d}/{epochs}  d_loss {history['d_loss'][-1]:.3f}  g_loss {history['g_loss'][-1]:.3f}  \"\n              f\"diversity {history['diversity'][-1]:.1f}\")\n    return G, D, history, snapshots\n\nG, D, history, snapshots = train_gan()", "diag": "fig, ax = plt.subplots(1, 2, figsize=(11, 3.5))\nax[0].plot(history['d_loss'], label='discriminator')\nax[0].plot(history['g_loss'], label='generator')\nax[0].axhline(2 * math.log(2), color='C0', ls='--', alpha=0.5)\nax[0].axhline(math.log(2), color='C1', ls='--', alpha=0.5)\nax[0].set_title('Loss per epoch (dashed: equilibrium values)')\nax[0].set_xlabel('epoch')\nax[0].legend()\nax[1].plot(history['diversity'], label='generated')\nax[1].axhline(real_diversity, color='k', ls='--', label='real faces')\nax[1].set_title('Diversity of 32 samples')\nax[1].set_xlabel('epoch')\nax[1].legend()\nplt.show()\nprint(f'Equilibrium: d_loss = 2 ln 2 = {2 * math.log(2):.3f}, g_loss = ln 2 = {math.log(2):.3f}')\n\nfig, ax = plt.subplots(1, len(snapshots), figsize=(4 * len(snapshots), 4.4))\nfor a, (epoch, imgs) in zip(ax, snapshots.items()):\n    grid = imgs[:16].reshape(4, 4, 64, 64, 3).transpose(0, 2, 1, 3, 4).reshape(256, 256, 3)\n    a.imshow(grid)\n    a.set_title(f'Epoch {epoch}')\n    a.axis('off')\nplt.show()", "use": "G.eval()\nwith torch.no_grad():\n    new = G(torch.randn(32, LATENT, device=device))\nshow_grid(to_uint8(new), title='New faces from the trained generator')\nprint(f'Diversity: {diversity(new):.1f} (real faces: {real_diversity:.1f})')\n\n# Are the new faces copies? Put each one next to its closest training face.\nwith torch.no_grad():\n    sample = G(torch.randn(8, LATENT, device=device)).cpu()\ntrain_flat = to_unit(torch.from_numpy(faces)).reshape(len(faces), -1)\nclosest = torch.cdist(sample.reshape(8, -1), train_flat).argmin(dim=1)\n\npairs = np.concatenate([to_uint8(sample), faces[closest.numpy()]])\nshow_grid(pairs, rows=2, cols=8, title='Top: generated. Bottom: closest training face')\n\nz0, z1 = torch.randn(2, LATENT, device=device)\nweights = torch.linspace(0, 1, 10, device=device).view(-1, 1)\nwith torch.no_grad():\n    walk = G(torch.lerp(z0, z1, weights))\nshow_grid(to_uint8(walk), rows=1, cols=10, title='Walking from one noise vector to another')", "ablate": "ABLATION_EPOCHS = EPOCHS      # same length as the main run, so the comparison is fair\n_, _, plain_history, plain_snapshots = train_gan(spectral=False, epochs=ABLATION_EPOCHS)\n\ndef summarize(name, h, epoch):\n    i = epoch - 1\n    print(f\"{name:<24} d_loss {h['d_loss'][i]:.2f}   g_loss {h['g_loss'][i]:.2f}   \"\n          f\"diversity {h['diversity'][i] / real_diversity:.2f} of real\")\n\nsummarize('With spectral norm', history, ABLATION_EPOCHS)\nsummarize('Without spectral norm', plain_history, ABLATION_EPOCHS)\n\nlast = list(plain_snapshots)[-1]\nshow_grid(plain_snapshots[last], rows=2, cols=8, title=f'Without spectral norm, epoch {last}')"};
+init();
+
+})();
+</script>
+</body>
+</html>
